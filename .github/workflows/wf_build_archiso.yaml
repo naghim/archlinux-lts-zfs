@@ -4,6 +4,7 @@ on:
 
 jobs:
   build-and-publish:
+    runs-on: ubuntu-latest
     container:
       image: archlinux:latest
     steps:
