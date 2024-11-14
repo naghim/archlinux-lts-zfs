@@ -3,7 +3,7 @@ on:
   workflow_dispatch
 
 jobs:
-  build-iso:
+  build-and-publish:
     container:
       image: archlinux:latest
     steps:
@@ -73,11 +73,11 @@ jobs:
           [ -d /tmp/"$name" ] && cd /tmp ; sudo rm -rf "$name"
           mkarchiso -v -w /tmp/"$name" -o "$build_out" "$build"
           ls -alh "$build_out"
-
-  release:
-    uses: svenstaro/upload-release-action@v2
-    with:
-      repo_token: ${{ secrets.GITHUB_TOKEN }}
-      file: ${{ env.BUILD_OUTPUT_DIR }}/archlinux-lts-zfs-${{ env.RELEASE_DATE }}-x86_64.iso
-      asset_name: archlinux-lts-zfs-${{ env.RELEASE_DATE }}.iso
-      tag: ${{ env.RELEASE_DATE }}
+      - name: publish
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.BUILD_OUTPUT_DIR }}/archlinux-lts-zfs*
+          asset_name: archlinux-lts-zfs-${{ env.RELEASE_DATE }}.iso
+          tag: ${{ env.RELEASE_DATE }}
+          overwrite: true
