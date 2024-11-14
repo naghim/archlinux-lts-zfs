@@ -71,7 +71,7 @@ jobs:
           sed -i "s/livecd-sound/chroot_config/" "$profile"
           sed -i "/choose-mirror/d" "$profile"
 
-          [ -d /tmp/"$name" ] && cd /tmp ; sudo rm -rf "$name"
+          [ -d /tmp/"$name" ] && cd /tmp ; rm -rf "$name"
           mkarchiso -v -w /tmp/"$name" -o "$build_out" "$build"
           ls -alh "$build_out"
       - name: publish
