@@ -8,19 +8,15 @@ permissions:
   contents: write
 
 jobs:
-  build-and-publish:
+  build-and-upload:
     runs-on: ubuntu-latest
     container:
       image: archlinux:latest
       options: --privileged
-    strategy:
-      matrix:
-        name: [image, checksum]
-        include:
-          - name: image
-            suffix: iso
-          - name: checksum
-            suffix: iso.sha256
+    outputs:
+      release_date: ${{ steps.build.outputs.RELEASE_DATE }}
+      kernel_version: ${{ steps.build.outputs.KERNEL_VERSION }}
+      zfs_version: ${{ steps.build.outputs.ZFS_VERSION }}
     steps:
       - name: build
         shell: bash
@@ -31,12 +27,15 @@ jobs:
           build_out="$build/out"
           release_date=$(date +'%Y.%m.%d')
           echo "RELEASE_DATE=$release_date" >> ${GITHUB_ENV}
+          echo "RELEASE_DATE=$release_date" >> ${GITHUB_OUTPUT}
           echo "BUILD_OUTPUT_DIR=$build_out" >> ${GITHUB_ENV}
 
-          [ ! "$(pacman -Q archiso)" ] && pacman -Syy --noconfirm archiso
-          [ ! "$(pacman -Q libisoburn)" ] && pacman -Syy --noconfirm libisoburn
-          [ ! "$(pacman -Q mtools)" ] && pacman -Syy --noconfirm mtools
-          [ ! "$(pacman -Q curl)" ] && pacman -Syy --noconfirm curl
+          pacman -Syy
+          [ ! "$(pacman -Q archiso)" ] && pacman -S --noconfirm archiso
+          [ ! "$(pacman -Q libisoburn)" ] && pacman -S --noconfirm libisoburn
+          [ ! "$(pacman -Q mtools)" ] && pacman -S --noconfirm mtools
+          [ ! "$(pacman -Q curl)" ] && pacman -S --noconfirm curl
+          
           cp -r /usr/share/archiso/configs/releng "$build"
 
           sed -i "s/^linux$/$kernel/" "$build"/packages.x86_64
@@ -102,15 +101,45 @@ jobs:
           cd .. && rm -rf extracted
           
           sha256sum archlinux-lts-zfs-$release_date-x86_64.iso > archlinux-lts-zfs-$release_date-x86_64.iso.sha256
-          echo "KERNEL_VERSION=$(chroot /tmp/$name/x86_64/airootfs pacman -Q linux-lts | sed 's/\s\+/:/')" >> ${GITHUB_ENV}
-          echo "ZFS_VERSION=$(chroot /tmp/$name/x86_64/airootfs pacman -Q zfs-linux-lts | sed 's/\s\+/:/')" >> ${GITHUB_ENV}
+          echo "KERNEL_VERSION=$(chroot /tmp/$name/x86_64/airootfs pacman -Q linux-lts | sed 's/\s\+/:/')" >> ${GITHUB_OUTPUT}
+          echo "ZFS_VERSION=$(chroot /tmp/$name/x86_64/airootfs pacman -Q zfs-linux-lts | sed 's/\s\+/:/')" >> ${GITHUB_OUTPUT}
+      - name: upload-iso
+        uses: actions/upload-artifact@v4
+        with:
+          name: archlinux-lts-zfs-${{ env.RELEASE_DATE }}-x86_64.iso
+          path: ${{ env.BUILD_OUTPUT_DIR }}/archlinux-lts-zfs-${{ env.RELEASE_DATE }}-x86_64.iso
+          retention-days: 1
+      - name: upload-sha
+        uses: actions/upload-artifact@v4
+        with:
+          name: archlinux-lts-zfs-${{ env.RELEASE_DATE }}-x86_64.iso.sha256
+          path: ${{ env.BUILD_OUTPUT_DIR }}/archlinux-lts-zfs-${{ env.RELEASE_DATE }}-x86_64.iso.sha256
+          retention-days: 1
+          
+  download-and-publish:
+    runs-on: ubuntu-latest
+    needs: build-and-upload
+    strategy:
+      matrix:
+        name: [image, checksum]
+        include:
+          - name: image
+            suffix: iso
+          - name: checksum
+            suffix: iso.sha256
+    steps:
+      - name: download
+        uses: actions/download-artifact@v4
+        with:
+          path: ./
+          merge-multiple: true
       - name: publish
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ env.BUILD_OUTPUT_DIR }}/archlinux-lts-zfs-${{ env.RELEASE_DATE }}-x86_64.${{ matrix.suffix }}
-          asset_name: archlinux-lts-zfs-${{ env.RELEASE_DATE }}-x86_64.${{ matrix.suffix }}
-          tag: ${{ env.RELEASE_DATE }}
-          body: "Packages: ${{  env.KERNEL_VERSION  }} & ${{  env.ZFS_VERSION  }}"
+          file: ./archlinux-lts-zfs-${{ needs.build-and-upload.outputs.release_date }}-x86_64.${{ matrix.suffix }}
+          asset_name: archlinux-lts-zfs-${{ needs.build-and-upload.outputs.release_date }}-x86_64.${{ matrix.suffix }}
+          tag: ${{ needs.build-and-upload.outputs.release_date }}
+          body: "Packages: ${{ needs.build-and-upload.outputs.kernel_version }} & ${{ needs.build-and-upload.outputs.zfs_version }}"
           overwrite: true
-          file_glob: true
+          file_glob: false
