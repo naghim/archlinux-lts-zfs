@@ -1,6 +1,8 @@
 name: Build Arch ISO with LTS Kernel and ZFS
 on:
-  workflow_dispatch
+  workflow_dispatch:
+  schedule:
+    - cron:  '30 4 4 * *'
 
 permissions:
   contents: write
