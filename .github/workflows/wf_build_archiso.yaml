@@ -6,6 +6,11 @@ on:
 
 permissions:
   contents: write
+  
+env:
+  ENV_RELEASE_DATE: ${{ jobs.build-and-upload.outputs.release_date }}
+  ENV_KERNEL_VERSION: ${{ jobs.build-and-upload.outputs.kernel_version }}
+  ENV_ZFS_VERSION: ${{ jobs.build-and-upload.outputs.zfs_version }}
 
 jobs:
   build-and-upload:
@@ -14,11 +19,11 @@ jobs:
       image: archlinux:latest
       options: --privileged
     outputs:
-      release_date: ${{ steps.build.outputs.RELEASE_DATE }}
-      kernel_version: ${{ steps.build.outputs.KERNEL_VERSION }}
-      zfs_version: ${{ steps.build.outputs.ZFS_VERSION }}
+      release_date: ${{ steps.build-step.outputs.RELEASE_DATE }}
+      kernel_version: ${{ steps.build-step.outputs.KERNEL_VERSION }}
+      zfs_version: ${{ steps.build-step.outputs.ZFS_VERSION }}
     steps:
-      - name: build
+      - name: build-step
         shell: bash
         run: |
           kernel=linux-lts
@@ -27,7 +32,6 @@ jobs:
           build_out="$build/out"
           release_date=$(date +'%Y.%m.%d')
           echo "RELEASE_DATE=$release_date" >> ${GITHUB_ENV}
-          echo "RELEASE_DATE=$release_date" >> ${GITHUB_OUTPUT}
           echo "BUILD_OUTPUT_DIR=$build_out" >> ${GITHUB_ENV}
 
           pacman -Syy
@@ -101,8 +105,10 @@ jobs:
           cd .. && rm -rf extracted
           
           sha256sum archlinux-lts-zfs-$release_date-x86_64.iso > archlinux-lts-zfs-$release_date-x86_64.iso.sha256
-          echo "KERNEL_VERSION=$(chroot /tmp/$name/x86_64/airootfs pacman -Q linux-lts | sed 's/\s\+/:/')" >> ${GITHUB_OUTPUT}
-          echo "ZFS_VERSION=$(chroot /tmp/$name/x86_64/airootfs pacman -Q zfs-linux-lts | sed 's/\s\+/:/')" >> ${GITHUB_OUTPUT}
+          
+          echo "KERNEL_VERSION=$(chroot /tmp/$name/x86_64/airootfs pacman -Q linux-lts | sed 's/\s\+/:/')" >> "$GITHUB_OUTPUT"
+          echo "ZFS_VERSION=$(chroot /tmp/$name/x86_64/airootfs pacman -Q zfs-linux-lts | sed 's/\s\+/:/')" >> "$GITHUB_OUTPUT"
+          echo "RELEASE_DATE=$release_date" >> "$GITHUB_OUTPUT"
       - name: upload-iso
         uses: actions/upload-artifact@v4
         with:
@@ -121,25 +127,28 @@ jobs:
     needs: build-and-upload
     strategy:
       matrix:
-        name: [image, checksum]
+        name: [iso, sha]
         include:
-          - name: image
-            suffix: iso
-          - name: checksum
-            suffix: iso.sha256
+          - name: iso
+            file: archlinux-lts-zfs-$ENV_RELEASE_DATE-x86_64.iso
+          - name: sha
+            file: archlinux-lts-zfs-$ENV_RELEASE_DATE-x86_64.iso.sha256
     steps:
       - name: download
         uses: actions/download-artifact@v4
         with:
+          name: ${{ matrix.file }}
           path: ./
-          merge-multiple: true
+      - name: unzip
+        shell: bash
+        run: unzip ./${{ matrix.file }}.zip
       - name: publish
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./archlinux-lts-zfs-${{ needs.build-and-upload.outputs.release_date }}-x86_64.${{ matrix.suffix }}
-          asset_name: archlinux-lts-zfs-${{ needs.build-and-upload.outputs.release_date }}-x86_64.${{ matrix.suffix }}
-          tag: ${{ needs.build-and-upload.outputs.release_date }}
-          body: "Packages: ${{ needs.build-and-upload.outputs.kernel_version }} & ${{ needs.build-and-upload.outputs.zfs_version }}"
+          file: ./${{ matrix.file }}
+          asset_name: ${{ matrix.file }}
+          tag: $ENV_RELEASE_DATE
+          body: "Packages: $ENV_KERNEL_VERSION & $ENV_ZFS_VERSION"
           overwrite: true
           file_glob: false
