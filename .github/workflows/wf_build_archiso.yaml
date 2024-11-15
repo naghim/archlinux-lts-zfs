@@ -8,9 +8,9 @@ permissions:
   contents: write
   
 env:
-  ENV_RELEASE_DATE: ${{ jobs.build-and-upload.outputs.release_date }}
-  ENV_KERNEL_VERSION: ${{ jobs.build-and-upload.outputs.kernel_version }}
-  ENV_ZFS_VERSION: ${{ jobs.build-and-upload.outputs.zfs_version }}
+  ENV_RELEASE_DATE: ${{ needs.build-and-upload.outputs.release_date }}
+  ENV_KERNEL_VERSION: ${{ needs.build-and-upload.outputs.kernel_version }}
+  ENV_ZFS_VERSION: ${{ needs.build-and-upload.outputs.zfs_version }}
 
 jobs:
   build-and-upload:
@@ -23,7 +23,8 @@ jobs:
       kernel_version: ${{ steps.build-step.outputs.KERNEL_VERSION }}
       zfs_version: ${{ steps.build-step.outputs.ZFS_VERSION }}
     steps:
-      - name: build-step
+      - name: build
+        id: build-step
         shell: bash
         run: |
           kernel=linux-lts
