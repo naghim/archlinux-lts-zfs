@@ -126,9 +126,9 @@ jobs:
         name: [iso, sha]
         include:
           - name: iso
-            file: archlinux-lts-zfs-$ENV_RELEASE_DATE-x86_64.iso
+            file: archlinux-lts-zfs-${{ needs.build-and-upload.outputs.release_date }}-x86_64.iso
           - name: sha
-            file: archlinux-lts-zfs-$ENV_RELEASE_DATE-x86_64.iso.sha256
+            file: archlinux-lts-zfs-${{ needs.build-and-upload.outputs.release_date }}-x86_64.iso.sha256
     steps:
       - name: download
         uses: actions/download-artifact@v4
@@ -137,18 +137,16 @@ jobs:
           path: ./
       - name: unzip
         shell: bash
-        run: unzip ./${{ matrix.file }}.zip
+        run: |
+          command -v unzip >/dev/null || ( apt-get update -y && apt-get install unzip -y )
+          unzip ./${{ matrix.file }}.zip
       - name: publish
         uses: svenstaro/upload-release-action@v2
-        env:
-          ENV_RELEASE_DATE: ${{ needs.build-and-upload.outputs.release_date }}
-          ENV_KERNEL_VERSION: ${{ needs.build-and-upload.outputs.kernel_version }}
-          ENV_ZFS_VERSION: ${{ needs.build-and-upload.outputs.zfs_version }}
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ./${{ matrix.file }}
           asset_name: ${{ matrix.file }}
-          tag: $ENV_RELEASE_DATE
-          body: "Packages: $ENV_KERNEL_VERSION & $ENV_ZFS_VERSION"
+          tag: ${{ needs.build-and-upload.outputs.release_date }}
+          body: "Packages: ${{ needs.build-and-upload.outputs.kernel_version }} & ${{ needs.build-and-upload.outputs.zfs_version }}"
           overwrite: true
           file_glob: false
