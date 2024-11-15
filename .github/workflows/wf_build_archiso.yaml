@@ -138,8 +138,7 @@ jobs:
       - name: unzip
         shell: bash
         run: |
-          command -v unzip >/dev/null || ( apt-get update -y && apt-get install unzip -y )
-          unzip ./${{ matrix.file }}.zip
+          ls -alh
       - name: publish
         uses: svenstaro/upload-release-action@v2
         with:
