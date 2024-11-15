@@ -76,6 +76,8 @@ jobs:
           [ -d /tmp/"$name" ] && cd /tmp ; rm -rf "$name"
           mkarchiso -v -w /tmp/"$name" -o "$build_out" "$build"
           ls -alh "$build_out"
+          echo "KERNEL_VERSION=$(chroot /tmp/\"$name\"/x86_64/airootfs pacman -Q linux-lts | sed 's/\s\+/:/')" >> ${GITHUB_ENV}
+          echo "ZFS_VERSION=$(chroot /tmp/\"$name\"/x86_64/airootfs pacman -Q zfs-linux-lts | sed 's/\s\+/:/')" >> ${GITHUB_ENV}
       - name: publish
         uses: svenstaro/upload-release-action@v2
         with:
@@ -83,5 +85,6 @@ jobs:
           file: ${{ env.BUILD_OUTPUT_DIR }}/archlinux-lts-zfs*
           asset_name: archlinux-lts-zfs-${{ env.RELEASE_DATE }}-x86_64.iso
           tag: ${{ env.RELEASE_DATE }}
+          body: "Packages: ${{  env.KERNEL_VERSION  }} & ${{  env.ZFS_VERSION  }}"
           overwrite: true
           file_glob: true
