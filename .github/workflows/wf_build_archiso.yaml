@@ -2,6 +2,9 @@ name: Build Arch ISO with LTS Kernel and ZFS
 on:
   workflow_dispatch
 
+permissions:
+  contents: write
+
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
@@ -78,6 +81,6 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ${{ env.BUILD_OUTPUT_DIR }}/archlinux-lts-zfs*
-          asset_name: archlinux-lts-zfs-${{ env.RELEASE_DATE }}.iso
+          asset_name: archlinux-lts-zfs-${{ env.RELEASE_DATE }}-x86_64.iso
           tag: ${{ env.RELEASE_DATE }}
           overwrite: true
