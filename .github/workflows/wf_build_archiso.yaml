@@ -7,6 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: archlinux:latest
+      options: --privileged
     steps:
       - name: build
         shell: bash
@@ -67,8 +68,6 @@ jobs:
           profile="$build"/profiledef.sh
           sed -i "s/iso_name=\"archlinux\"/iso_name=\"archlinux-lts-zfs\"/" "$profile"
           sed -i "s/iso_label=\"ARCH_\$(date +%Y%m)\"/iso_label=\"ArchLTSZFS_\$(date +%Y-%m-%d)\"/" "$profile" 
-          sed -i "s/Installation_guide/archonzfs/" "$profile"
-          sed -i "s/livecd-sound/chroot_config/" "$profile"
           sed -i "/choose-mirror/d" "$profile"
 
           [ -d /tmp/"$name" ] && cd /tmp ; rm -rf "$name"
