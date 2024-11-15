@@ -13,6 +13,14 @@ jobs:
     container:
       image: archlinux:latest
       options: --privileged
+    strategy:
+      matrix:
+        name: [image, checksum]
+        include:
+          - name: image
+            suffix: iso
+          - name: checksum
+            suffix: iso.sha256
     steps:
       - name: build
         shell: bash
@@ -77,15 +85,19 @@ jobs:
 
           [ -d /tmp/"$name" ] && cd /tmp ; rm -rf "$name"
           mkarchiso -v -w /tmp/"$name" -o "$build_out" "$build"
-          ls -alh "$build_out"
+          
+          cd "$build_out"
+          ls -alh
+          
+          sha256sum archlinux-lts-zfs-${{ env.RELEASE_DATE }}-x86_64.iso > archlinux-lts-zfs-${{ env.RELEASE_DATE }}-x86_64.iso.sha256
           echo "KERNEL_VERSION=$(chroot /tmp/$name/x86_64/airootfs pacman -Q linux-lts | sed 's/\s\+/:/')" >> ${GITHUB_ENV}
           echo "ZFS_VERSION=$(chroot /tmp/$name/x86_64/airootfs pacman -Q zfs-linux-lts | sed 's/\s\+/:/')" >> ${GITHUB_ENV}
       - name: publish
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ env.BUILD_OUTPUT_DIR }}/archlinux-lts-zfs*
-          asset_name: archlinux-lts-zfs-${{ env.RELEASE_DATE }}-x86_64.iso
+          file: ${{ env.BUILD_OUTPUT_DIR }}/archlinux-lts-zfs-${{ env.RELEASE_DATE }}-x86_64.${{ matrix.suffix }}
+          asset_name: archlinux-lts-zfs-${{ env.RELEASE_DATE }}-x86_64.${{ matrix.suffix }}
           tag: ${{ env.RELEASE_DATE }}
           body: "Packages: ${{  env.KERNEL_VERSION  }} & ${{  env.ZFS_VERSION  }}"
           overwrite: true
