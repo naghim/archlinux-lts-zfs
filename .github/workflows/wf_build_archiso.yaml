@@ -7,11 +7,6 @@ on:
 permissions:
   contents: write
   
-env:
-  ENV_RELEASE_DATE: ${{ needs.build-and-upload.outputs.release_date }}
-  ENV_KERNEL_VERSION: ${{ needs.build-and-upload.outputs.kernel_version }}
-  ENV_ZFS_VERSION: ${{ needs.build-and-upload.outputs.zfs_version }}
-
 jobs:
   build-and-upload:
     runs-on: ubuntu-latest
@@ -107,9 +102,9 @@ jobs:
           
           sha256sum archlinux-lts-zfs-$release_date-x86_64.iso > archlinux-lts-zfs-$release_date-x86_64.iso.sha256
           
-          echo "KERNEL_VERSION=$(chroot /tmp/$name/x86_64/airootfs pacman -Q linux-lts | sed 's/\s\+/:/')" >> "$GITHUB_OUTPUT"
-          echo "ZFS_VERSION=$(chroot /tmp/$name/x86_64/airootfs pacman -Q zfs-linux-lts | sed 's/\s\+/:/')" >> "$GITHUB_OUTPUT"
-          echo "RELEASE_DATE=$release_date" >> "$GITHUB_OUTPUT"
+          echo "KERNEL_VERSION=$(chroot /tmp/$name/x86_64/airootfs pacman -Q linux-lts | sed 's/\s\+/:/')" >> ${GITHUB_OUTPUT}
+          echo "ZFS_VERSION=$(chroot /tmp/$name/x86_64/airootfs pacman -Q zfs-linux-lts | sed 's/\s\+/:/')" >> ${GITHUB_OUTPUT}
+          echo "RELEASE_DATE=$release_date" >> ${GITHUB_OUTPUT}
       - name: upload-iso
         uses: actions/upload-artifact@v4
         with:
@@ -145,6 +140,10 @@ jobs:
         run: unzip ./${{ matrix.file }}.zip
       - name: publish
         uses: svenstaro/upload-release-action@v2
+        env:
+          ENV_RELEASE_DATE: ${{ need.build-and-upload.outputs.release_date }}
+          ENV_KERNEL_VERSION: ${{ needs.build-and-upload.outputs.kernel_version }}
+          ENV_ZFS_VERSION: ${{ needs.build-and-upload.outputs.zfs_version }}
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ./${{ matrix.file }}
