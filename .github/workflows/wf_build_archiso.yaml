@@ -141,7 +141,7 @@ jobs:
       - name: publish
         uses: svenstaro/upload-release-action@v2
         env:
-          ENV_RELEASE_DATE: ${{ need.build-and-upload.outputs.release_date }}
+          ENV_RELEASE_DATE: ${{ needs.build-and-upload.outputs.release_date }}
           ENV_KERNEL_VERSION: ${{ needs.build-and-upload.outputs.kernel_version }}
           ENV_ZFS_VERSION: ${{ needs.build-and-upload.outputs.zfs_version }}
         with:
