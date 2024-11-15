@@ -84,3 +84,4 @@ jobs:
           asset_name: archlinux-lts-zfs-${{ env.RELEASE_DATE }}-x86_64.iso
           tag: ${{ env.RELEASE_DATE }}
           overwrite: true
+          file_glob: true
