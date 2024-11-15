@@ -32,7 +32,10 @@ jobs:
           echo "RELEASE_DATE=$(date +'%Y.%m.%d')" >> ${GITHUB_ENV}
           echo "BUILD_OUTPUT_DIR=$build_out" >> ${GITHUB_ENV}
 
-          [ ! "$(pacman -Q archiso)" ] && pacman -Syy --noconfirm archiso
+          [ ! "$(pacman -Q archiso libisoburn mtools)" ] && pacman -Syy --noconfirm archiso libisoburn mtools
+          [ ! "$(pacman -Q libisoburn)" ] && pacman -Syy --noconfirm libisoburn
+          [ ! "$(pacman -Q mtools)" ] && pacman -Syy --noconfirm mtools
+          [ ! "$(pacman -Q curl)" ] && pacman -Syy --noconfirm curl
           cp -r /usr/share/archiso/configs/releng "$build"
 
           sed -i "s/^linux$/$kernel/" "$build"/packages.x86_64
@@ -88,6 +91,14 @@ jobs:
           
           cd "$build_out"
           ls -alh
+          mkdir extracted && cd extracted
+          osirrox -indev ../archlinux-lts-zfs-${{ env.RELEASE_DATE }}-x86_64.iso -extract_boot_images ./ -extract /EFI/BOOT/BOOTx64.EFI loader.efi
+          curl -o BOOTx64.EFI https://blog.hansenpartnership.com/wp-uploads/2013/PreLoader.efi
+          curl -o HashTool.efi https://blog.hansenpartnership.com/wp-uploads/2013/HashTool.efi
+          mcopy -D oO -i eltorito_img2_uefi.img BOOTx64.EFI loader.efi HashTool.efi ::/EFI/BOOT/
+          xorriso -indev ../archlinux-lts-zfs-${{ env.RELEASE_DATE }}-x86_64.iso -outdev archlinux-lts-zfs-sb-${{ env.RELEASE_DATE }}-x86_64.iso -map_l ./ /EFI/BOOT/ BOOTx64.EFI loader.efi HashTool.efi -- -boot_image any replay -append_partition 2 0xef eltorito_img2_uefi.img
+          mv archlinux-lts-zfs-sb-${{ env.RELEASE_DATE }}-x86_64.iso ../archlinux-lts-zfs-${{ env.RELEASE_DATE }}-x86_64.iso
+          cd .. && rm -rf extracted
           
           sha256sum archlinux-lts-zfs-${{ env.RELEASE_DATE }}-x86_64.iso > archlinux-lts-zfs-${{ env.RELEASE_DATE }}-x86_64.iso.sha256
           echo "KERNEL_VERSION=$(chroot /tmp/$name/x86_64/airootfs pacman -Q linux-lts | sed 's/\s\+/:/')" >> ${GITHUB_ENV}
