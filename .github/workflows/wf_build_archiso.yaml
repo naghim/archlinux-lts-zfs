@@ -32,7 +32,7 @@ jobs:
           echo "RELEASE_DATE=$(date +'%Y.%m.%d')" >> ${GITHUB_ENV}
           echo "BUILD_OUTPUT_DIR=$build_out" >> ${GITHUB_ENV}
 
-          [ ! "$(pacman -Q archiso libisoburn mtools)" ] && pacman -Syy --noconfirm archiso libisoburn mtools
+          [ ! "$(pacman -Q archiso)" ] && pacman -Syy --noconfirm archiso
           [ ! "$(pacman -Q libisoburn)" ] && pacman -Syy --noconfirm libisoburn
           [ ! "$(pacman -Q mtools)" ] && pacman -Syy --noconfirm mtools
           [ ! "$(pacman -Q curl)" ] && pacman -Syy --noconfirm curl
