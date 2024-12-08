@@ -58,7 +58,6 @@ jobs:
           done
 
           cd "$build"/airootfs/etc/mkinitcpio.d
-          mv linux.preset "$kernel".preset
           sed -i "s/vmlinuz-linux/vmlinuz-$kernel/" "$kernel".preset
           sed -i "s/initramfs-linux.img/initramfs-$kernel.img/" "$kernel".preset
 
